@@ -7,17 +7,6 @@
   },
   "plugins": [
     {
-      "name": "harnesses-factory",
-      "source": ".",
-      "description": "Factory toolkit for creating Claude Code harness components",
-      "version": "1.1.0",
-      "categories": [
-        "development",
-        "plugin-development",
-        "mcp"
-      ]
-    },
-    {
       "name": "version-notifier",
       "source": "./plugins/version-notifier",
       "description": "Notify and explain changelog on new version release",

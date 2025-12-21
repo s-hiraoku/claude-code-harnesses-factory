@@ -1,67 +1,51 @@
 # Claude Code Harnesses Factory
 
-A factory toolkit for creating Claude Code harness components.
+Claude Code プラグインのマーケットプレイス。
 
-## Purpose
+## このリポジトリについて
 
-This plugin provides skills, agents, and hooks to help you build:
-- **Agents** - Autonomous AI specialists
-- **Skills** - Reusable capability packages
-- **Commands** - Custom slash commands
-- **Hooks** - Event-driven automation
-- **MCP Servers** - External service integrations
+- **マーケットプレイス**: `plugins/` 配下のプラグインを配布
+- **開発環境**: `.claude/` に開発支援ツール（このリポジトリ専用）
 
-## Available Components
+## 配布プラグイン
+
+| Plugin | Description |
+|--------|-------------|
+| `version-notifier` | 新バージョン通知 |
+| `context-advisor` | コンテキスト最適化（予定） |
+
+## 開発支援ツール (.claude/)
+
+このリポジトリをクローンした開発者向け。
 
 ### Skills
 
 | Skill | Purpose |
 |-------|---------|
-| `skill-creator` | Guide for creating new skills |
-| `agent-development` | Guide for building agents |
-| `command-development` | Guide for creating commands |
-| `mcp-builder` | Guide for building MCP servers |
-| `mcp-integration` | Guide for integrating MCP servers |
+| `skill-creator` | スキル作成ガイド |
+| `agent-development` | エージェント開発ガイド |
+| `command-development` | コマンド作成ガイド |
+| `mcp-builder` | MCP サーバー構築ガイド |
+| `mcp-integration` | MCP 統合ガイド |
 
 ### Agents
 
 | Agent | Purpose |
 |-------|---------|
-| `mcp-server-architect` | Expert for MCP server design and implementation |
+| `mcp-server-architect` | MCP サーバー設計・実装の専門家 |
 
-### Hooks
-
-| Hook | Purpose |
-|------|---------|
-| `file-backup` | Auto-backup files before editing |
-| `change-tracker` | Log all file changes |
-
-## Usage
-
-When creating new harness components, Claude will automatically use these skills to guide you through:
-
-1. **Creating a skill**: Invoke `skill-creator` knowledge
-2. **Building an agent**: Use `agent-development` patterns
-3. **Making a command**: Follow `command-development` structure
-4. **Setting up MCP**: Apply `mcp-builder` and `mcp-integration`
-
-## File Structure Reference
+## プラグイン構成リファレンス
 
 ```
-# Skill
-skills/my-skill/SKILL.md
-
-# Agent
-agents/my-agent.md
-
-# Command
-commands/my-command.md
-
-# Hook
-hooks/my-hook.json
-
-# MCP Configuration
-.mcp.json
+plugins/my-plugin/
+├── .claude-plugin/
+│   └── plugin.json      # マニフェスト（必須）
+├── hooks/
+│   └── hooks.json       # Hook 定義
+├── commands/            # スラッシュコマンド
+├── skills/              # スキル
+├── scripts/             # 実行スクリプト
+└── README.md
 ```
 
 ## Attribution
