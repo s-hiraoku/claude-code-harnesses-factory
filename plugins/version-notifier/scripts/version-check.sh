@@ -70,30 +70,54 @@ get_latest_version() {
 }
 
 # ===== Changelog Retrieval =====
-get_changelog() {
-  local release_info=$(curl -s "https://api.github.com/repos/anthropics/claude-code/releases/latest" 2>/dev/null)
+# Get changelogs for all versions between current and latest
+get_changelogs() {
+  local current_version="$1"
+  local latest_version="$2"
 
-  if [ -n "$release_info" ]; then
-    echo "$release_info" | jq -r '.body // "Changelog not available"' 2>/dev/null | head -100
-  else
-    echo "Changelog not available. Please check: https://github.com/anthropics/claude-code/releases"
+  # Fetch all releases from GitHub API
+  local releases=$(curl -s "https://api.github.com/repos/anthropics/claude-code/releases?per_page=20" 2>/dev/null)
+
+  if [ -z "$releases" ]; then
+    echo "[]"
+    return
   fi
+
+  # Filter releases between current and latest versions
+  # Returns JSON array of {version, changelog} objects
+  echo "$releases" | jq -c --arg current "$current_version" --arg latest "$latest_version" '
+    [.[] |
+      {
+        version: (.tag_name | gsub("^v"; "")),
+        changelog: (.body // "No changelog available")
+      }
+    ] |
+    map(select(
+      (.version | split(".") | map(tonumber)) as $v |
+      ($current | split(".") | map(tonumber)) as $c |
+      ($latest | split(".") | map(tonumber)) as $l |
+      ($v[0] > $c[0] or ($v[0] == $c[0] and $v[1] > $c[1]) or ($v[0] == $c[0] and $v[1] == $c[1] and $v[2] > $c[2])) and
+      ($v[0] < $l[0] or ($v[0] == $l[0] and $v[1] < $l[1]) or ($v[0] == $l[0] and $v[1] == $l[1] and $v[2] <= $l[2]))
+    )) |
+    sort_by(.version | split(".") | map(tonumber)) |
+    reverse
+  ' 2>/dev/null || echo "[]"
 }
 
 # ===== Save to pending-upgrade.json =====
 save_pending_upgrade() {
   local current="$1"
   local latest="$2"
-  local changelog="$3"
+  local changelogs="$3"
 
   jq -cn \
     --arg prev "$current" \
     --arg latest "$latest" \
-    --arg changelog "$changelog" \
+    --argjson changelogs "$changelogs" \
     '{
       "previousVersion": $prev,
       "latestVersion": $latest,
-      "changelog": $changelog,
+      "changelogs": $changelogs,
       "detectedAt": now | todate
     }' > "$PENDING_UPGRADE_FILE"
 }
@@ -102,21 +126,28 @@ save_pending_upgrade() {
 show_update_notification() {
   local current="$1"
   local latest="$2"
+  local version_count="$3"
 
   # ANSI color codes (generate actual escape characters)
   local B=$'\033[1;34m'
   local O=$'\033[38;5;208m'
+  local R=$'\033[0m'
+
+  local version_info=""
+  if [ "$version_count" -gt 1 ]; then
+    version_info=" (${version_count} versions)"
+  fi
 
   local system_msg="
 ${B}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    New Claude Code version available!
 
-   Current: v${current}  →  Latest: v${latest}
+   Current: v${current}  →  Latest: v${latest}${version_info}
 
    Run ${O}/update-claude ${B}to upgrade.
-${B}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+${B}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${R}"
 
-  local context_msg="A new version v${latest} of Claude Code is available. The current version is v${current}. If the user wants to upgrade, guide them to use the /update-claude command."
+  local context_msg="A new version v${latest} of Claude Code is available (${version_count} version(s) to upgrade). The current version is v${current}. If the user wants to upgrade, guide them to use the /update-claude command."
 
   output_json "$system_msg" "$context_msg"
 }
@@ -138,14 +169,20 @@ main() {
     exit 0
   fi
 
-  # New version available - get changelog
-  local CHANGELOG=$(get_changelog)
+  # New version available - get changelogs for all versions between current and latest
+  local CHANGELOGS=$(get_changelogs "$CURRENT_VERSION" "$LATEST_VERSION")
+
+  # Count how many versions are being updated
+  local VERSION_COUNT=$(echo "$CHANGELOGS" | jq 'length')
+  if [ -z "$VERSION_COUNT" ] || [ "$VERSION_COUNT" = "0" ]; then
+    VERSION_COUNT=1
+  fi
 
   # Save to pending-upgrade.json (for /upgrade skill)
-  save_pending_upgrade "$CURRENT_VERSION" "$LATEST_VERSION" "$CHANGELOG"
+  save_pending_upgrade "$CURRENT_VERSION" "$LATEST_VERSION" "$CHANGELOGS"
 
   # Display notification in UI
-  show_update_notification "$CURRENT_VERSION" "$LATEST_VERSION"
+  show_update_notification "$CURRENT_VERSION" "$LATEST_VERSION" "$VERSION_COUNT"
 
   exit 0
 }

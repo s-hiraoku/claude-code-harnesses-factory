@@ -18,8 +18,20 @@ This skill interprets Claude Code changelogs (release notes) and generates user-
 Changelog (Markdown release notes) and version information:
 
 - `previousVersion`: Version before upgrade
-- `latestVersion`: Current version
-- `changelog`: Change details (GitHub Releases body)
+- `latestVersion`: Target version
+- `changelogs`: Array of version changes (each with `version` and `changelog` fields)
+
+**Example structure:**
+```json
+{
+  "previousVersion": "2.0.74",
+  "latestVersion": "2.0.76",
+  "changelogs": [
+    {"version": "2.0.76", "changelog": "..."},
+    {"version": "2.0.75", "changelog": "..."}
+  ]
+}
+```
 
 ## Information Gathering (REQUIRED)
 
@@ -29,12 +41,15 @@ Changelog (Markdown release notes) and version information:
 
 Use WebSearch with these queries (in order of priority):
 
+**For each version in the changelogs array:**
 ```
-1. "Claude Code v{latestVersion}" site:anthropic.com
-2. "Claude Code v{latestVersion}" site:docs.anthropic.com
-3. "Claude Code {latestVersion}" release notes
-4. "Claude Code" new features {latestVersion}
+1. "Claude Code v{version}" site:anthropic.com
+2. "Claude Code v{version}" site:docs.anthropic.com
+3. "Claude Code {version}" release notes
+4. "Claude Code" new features {version}
 ```
+
+**Note**: If upgrading multiple versions (e.g., 2.0.74 → 2.0.76), search for each intermediate version.
 
 ### Step 2: Fetch Documentation
 
@@ -73,7 +88,7 @@ Compare the changelog input with official sources to:
 
 ### 1. Structure
 
-**Two-part structure for readability:**
+**Multi-version structure for readability:**
 
 ```
 
@@ -94,7 +109,9 @@ Key changes from v{prevVersion} → v{newVersion}:
 
 ## 🆕 New Features in Detail
 
-### 1. {Feature name}
+### v{version1} Changes
+
+#### 1. {Feature name}
 
 {2-3 sentences explaining the feature in detail}
 
@@ -108,7 +125,9 @@ Key changes from v{prevVersion} → v{newVersion}:
 
 ---
 
-### 2. {Feature name}
+### v{version2} Changes (if multiple versions)
+
+#### 1. {Feature name}
 
 {Description}
 
@@ -126,6 +145,8 @@ Key changes from v{prevVersion} → v{newVersion}:
 • {Improvement 2}
 • {Bug fix}
 ```
+
+**Note**: When only one version is upgraded, the "v{version} Changes" header can be omitted for a cleaner output.
 
 ### 2. Feature Selection
 
@@ -236,27 +257,35 @@ The generated summary should be savable in this JSON format:
 
 ## Example: Input and Output
 
-### Input (changelog)
+### Input (multi-version changelogs)
 
-```markdown
-## What's Changed
-
-- feat: add LSP tool for code navigation by @anthropic in #1234
-- feat: add /terminal-setup for Kitty, Alacritty by @anthropic in #1235
-- fix: memory leak in long sessions by @anthropic in #1236
-- perf: faster startup time by @anthropic in #1237
+```json
+{
+  "previousVersion": "2.0.74",
+  "latestVersion": "2.0.76",
+  "changelogs": [
+    {
+      "version": "2.0.76",
+      "changelog": "## What's Changed\n- feat: add LSP tool for code navigation\n- fix: memory leak in long sessions"
+    },
+    {
+      "version": "2.0.75",
+      "changelog": "## What's Changed\n- feat: add /terminal-setup for Kitty, Alacritty\n- perf: faster startup time"
+    }
+  ]
+}
 ```
 
 ### Output (generated summary - with colors)
 
 ```
 \033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
-\033[1;36m🎉 Welcome to Claude Code v2.0.75!\033[0m
+\033[1;36m🎉 Welcome to Claude Code v2.0.76!\033[0m
 \033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
 
 \033[0;36m## 📋 Update Summary\033[0m
 
-Key changes from v2.0.74 → v2.0.75:
+Key changes from v2.0.74 → v2.0.76 (2 versions):
 
 • \033[1;35mLSP Tool\033[0m - Jump to definitions and search references in code
 • \033[1;35m/terminal-setup expansion\033[0m - Now supports Kitty, Alacritty
@@ -267,7 +296,9 @@ Key changes from v2.0.74 → v2.0.75:
 
 \033[0;36m## 🆕 New Features in Detail\033[0m
 
-\033[1;35m### 1. LSP Tool\033[0m
+\033[1;35m### v2.0.76 Changes\033[0m
+
+\033[1;35m#### 1. LSP Tool\033[0m
 
 Jump to definitions and search for references within your code.
 Experience IDE-like code navigation right in Claude Code!
@@ -282,7 +313,9 @@ Experience IDE-like code navigation right in Claude Code!
 
 ---
 
-\033[1;35m### 2. /terminal-setup Expansion\033[0m
+\033[1;35m### v2.0.75 Changes\033[0m
+
+\033[1;35m#### 1. /terminal-setup Expansion\033[0m
 
 Now supports Kitty, Alacritty, and other terminals.
 
@@ -296,6 +329,6 @@ Now supports Kitty, Alacritty, and other terminals.
 
 \033[0;32m## 🔧 Improvements & Fixes\033[0m
 
-• Improved startup performance
-• Fixed memory leak in long sessions
+• Improved startup performance (v2.0.75)
+• Fixed memory leak in long sessions (v2.0.76)
 ```
