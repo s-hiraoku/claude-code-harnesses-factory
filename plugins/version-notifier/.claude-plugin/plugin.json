@@ -1,13 +1,13 @@
 {
   "name": "version-notifier",
-  "version": "1.0.0",
-  "description": "Claude Code の新バージョンを通知し、Changelog を解説するプラグイン",
+  "version": "1.1.0",
+  "description": "Notifies about new Claude Code versions and assists with upgrades",
   "author": {
     "name": "s-hiraoku",
     "url": "https://github.com/s-hiraoku"
   },
   "repository": "https://github.com/s-hiraoku/claude-code-harnesses-factory",
   "license": "MIT",
-  "keywords": ["version", "notification", "changelog", "update"],
+  "keywords": ["version", "notification", "changelog", "update", "upgrade"],
   "hooks": "./hooks/hooks.json"
 }

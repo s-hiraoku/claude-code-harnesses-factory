@@ -1,50 +1,50 @@
 # Claude Code Harnesses Factory
 
-Claude Code プラグインのマーケットプレイス。
+A marketplace for Claude Code plugins.
 
-## このリポジトリについて
+## About This Repository
 
-- **マーケットプレイス**: `plugins/` 配下のプラグインを配布
-- **開発環境**: `.claude/` に開発支援ツール（このリポジトリ専用）
+- **Marketplace**: Distributes plugins from `plugins/` directory
+- **Development Tools**: Development support tools in `.claude/` (for this repository only)
 
-## 配布プラグイン
+## Available Plugins
 
 | Plugin | Description |
 |--------|-------------|
-| `version-notifier` | 新バージョン通知 |
-| `context-advisor` | コンテキスト最適化（予定） |
+| `version-notifier` | New version notification |
+| `context-advisor` | Context optimization (planned) |
 
-## 開発支援ツール (.claude/)
+## Development Tools (.claude/)
 
-このリポジトリをクローンした開発者向け。
+For developers who clone this repository.
 
 ### Skills
 
 | Skill | Purpose |
 |-------|---------|
-| `skill-creator` | スキル作成ガイド |
-| `agent-development` | エージェント開発ガイド |
-| `command-development` | コマンド作成ガイド |
-| `mcp-builder` | MCP サーバー構築ガイド |
-| `mcp-integration` | MCP 統合ガイド |
+| `skill-creator` | Skill creation guide |
+| `agent-development` | Agent development guide |
+| `command-development` | Command creation guide |
+| `mcp-builder` | MCP server building guide |
+| `mcp-integration` | MCP integration guide |
 
 ### Agents
 
 | Agent | Purpose |
 |-------|---------|
-| `mcp-server-architect` | MCP サーバー設計・実装の専門家 |
+| `mcp-server-architect` | MCP server design & implementation expert |
 
-## プラグイン構成リファレンス
+## Plugin Structure Reference
 
 ```
 plugins/my-plugin/
 ├── .claude-plugin/
-│   └── plugin.json      # マニフェスト（必須）
+│   └── plugin.json      # Manifest (required)
 ├── hooks/
-│   └── hooks.json       # Hook 定義
-├── commands/            # スラッシュコマンド
-├── skills/              # スキル
-├── scripts/             # 実行スクリプト
+│   └── hooks.json       # Hook definitions
+├── commands/            # Slash commands
+├── skills/              # Skills
+├── scripts/             # Execution scripts
 └── README.md
 ```
 

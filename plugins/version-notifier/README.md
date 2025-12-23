@@ -1,59 +1,205 @@
 # Version Notifier Plugin
 
-Claude Code の新バージョンがリリースされた際に自動通知し、Changelog を Claude に解説させるプラグイン。
+A plugin that automatically notifies you when a new version of Claude Code is released and makes upgrading easy.
 
-## 機能
+## Features
 
-- セッション開始時にバージョンをチェック
-- 新バージョンがある場合、GitHub Releases から Changelog を取得
-- Claude が Changelog を分析し、使い方とユースケースを説明
+- Checks version at session start
+- Displays notification in UI when a new version is available
+- Interactive upgrade via `/update-claude` command
+- **AI-generated usage guide**: Claude interprets the changelog and generates practical usage examples and use cases
+- Shows the generated summary on next startup after upgrade
 
-## インストール
+## Installation
 
 ```bash
-# グローバルインストール
-claude plugin install version-notifier@s-hiraoku/claude-code-harnesses-factory
+# Global install
+claude plugins install version-notifier@s-hiraoku/claude-code-harnesses-factory
 
-# プロジェクトローカル
-claude plugin install version-notifier@s-hiraoku/claude-code-harnesses-factory --scope project
+# Project local
+claude plugins install version-notifier@s-hiraoku/claude-code-harnesses-factory --scope project
 ```
 
-## 開発・テスト
+## Usage
+
+### 1. Receive Notifications
+
+When a new version is available, a notification is displayed at session start:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   New Claude Code version available!
+
+   Current: v2.0.74  →  Latest: v2.0.75
+
+   Run /update-claude to upgrade.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+### 2. Upgrade
+
+```
+/update-claude
+```
+
+Claude will execute the following:
+1. Confirmation prompt (yes/no)
+2. Auto-detect installation method (Native/Homebrew/npm)
+3. Execute upgrade
+4. **Generate usage summary** using `changelog-interpreter` skill
+5. Save summary for next startup
+6. Restart guidance
+
+### 3. View Usage Guide
+
+After upgrading, an AI-generated usage guide is displayed on next startup:
+
+```
+🎉 Welcome to Claude Code v2.0.75!
+
+## 🆕 Notable New Features
+
+### LSP Tool
+Jump to definitions and search for references within your code.
+
+💡 How to use: "Show me the definition of this function" or "Find references to getUser"
+
+📋 Use cases:
+- Navigating large codebases
+- Understanding impact of changes before refactoring
+
+### /terminal-setup Command
+Now supports Kitty, Alacritty, and other terminals.
+
+💡 How to use: Run /terminal-setup
+
+## 🔧 Improvements & Fixes
+- Improved startup performance
+- Fixed memory leak in long sessions
+```
+
+## Workflow
+
+```
+┌─────────────────────────────────────────────────────┐
+│              Claude Code Startup                    │
+└─────────────────────┬───────────────────────────────┘
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│         SessionStart Hook: version-check.sh         │
+└─────────────────────┬───────────────────────────────┘
+                      ▼
+          ┌───────────────────────┐
+          │ changelog-summary.json│
+          │ exists?               │
+          └───────────┬───────────┘
+                │
+     ┌──────────┴──────────┐
+     ▼ Yes                 ▼ No
+┌───────────┐      ┌─────────────────┐
+│ Display   │      │ Version         │
+│ AI Summary│      │ Check           │
+│ (exit 0)  │      └────────┬────────┘
+└───────────┘               ▼
+                 ┌───────────────────┐
+                 │ New version?      │
+                 └─────────┬─────────┘
+                     │
+           ┌─────────┴─────────┐
+           ▼ No                ▼ Yes
+     ┌───────────┐     ┌─────────────────┐
+     │ exit 0    │     │ Save to         │
+     │ (nothing) │     │ pending-upgrade │
+     └───────────┘     └────────┬────────┘
+                                ▼
+                       ┌─────────────────┐
+                       │ Display UI      │
+                       │ notification    │
+                       │ (exit 0)        │
+                       └─────────────────┘
+
+┌─────────────────────────────────────────────────────┐
+│            User: /update-claude                     │
+└─────────────────────┬───────────────────────────────┘
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│  1. AskUserQuestion: Upgrade?                       │
+│  2. Auto-detect installation method                 │
+│  3. Execute upgrade                                 │
+│  4. Generate summary (changelog-interpreter skill)  │
+│  5. Save to changelog-summary.json                  │
+│  6. Display restart message                         │
+└─────────────────────────────────────────────────────┘
+```
+
+## File Structure
+
+```
+plugins/version-notifier/
+├── .claude-plugin/
+│   └── plugin.json              # Plugin manifest
+├── hooks/
+│   └── hooks.json               # SessionStart hook definition
+├── commands/
+│   └── update-claude.md         # /update-claude command
+├── skills/
+│   └── changelog-interpreter/
+│       └── SKILL.md             # Changelog interpretation guidelines
+├── scripts/
+│   ├── version-check.sh         # Version check & notification
+│   └── detect-install-method.sh # Installation method detection
+├── .cache/                      # Runtime cache
+│   ├── pending-upgrade.json     # Pending upgrade info
+│   └── changelog-summary.json   # AI-generated summary
+└── README.md
+```
+
+## Cache Files
+
+| File | Purpose |
+|------|---------|
+| `pending-upgrade.json` | Detected new version info (for /update-claude) |
+| `changelog-summary.json` | AI-generated usage summary to display after upgrade |
+
+## Skills
+
+### changelog-interpreter
+
+Provides guidelines for Claude to interpret changelogs and generate user-friendly summaries including:
+- Feature highlights
+- Usage examples
+- Use cases
+- Improvements and bug fixes
+
+## Supported Installation Methods
+
+| Method | Detection | Upgrade Command |
+|--------|-----------|-----------------|
+| Native (Recommended) | Default | `curl -fsSL https://claude.ai/install.sh \| bash` |
+| Homebrew | `brew list --cask claude-code` | `brew upgrade --cask claude-code` |
+| npm | `npm list -g @anthropic-ai/claude-code` | `npm install -g @anthropic-ai/claude-code@latest` |
+
+## Dependencies
+
+- `jq` - JSON parsing
+- `curl` - HTTP requests
+- `npm` - Version checking
+
+## Development & Testing
 
 ```bash
+# Test in debug mode (fake version)
+# Edit get_current_version() in version-check.sh
+
+# Clear cache
+rm -rf plugins/version-notifier/.cache/*
+
+# Start with plugin directory
 claude --plugin-dir ./plugins/version-notifier
 ```
 
-## 動作フロー
+See [docs/version-notifier/](../../docs/version-notifier/) for detailed development documentation.
 
-```
-Claude Code 起動
-       ↓
-SessionStart Hook 実行
-       ↓
-version-check.sh 実行
-       ↓
-バージョン比較
-├─ 同じ → 何も表示しない
-└─ 新バージョンあり → Changelog 取得
-       ↓
-additionalContext として出力
-       ↓
-Claude が Changelog を分析・説明
-```
-
-## 設定
-
-| 項目 | デフォルト | 説明 |
-|------|-----------|------|
-| チェック間隔 | 24時間 | スクリプト内の `CHECK_INTERVAL_HOURS` で変更可能 |
-
-## 依存
-
-- `jq` - JSON パース
-- `curl` - HTTP リクエスト
-- `npm` - バージョン確認
-
-## ライセンス
+## License
 
 MIT

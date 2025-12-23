@@ -56,31 +56,29 @@ claude-code-harnesses-factory/
 
 ## Development
 
-### Testing Plugins
+### Setup (1回だけ)
 
 ```bash
-# Launch Claude Code with a specific plugin
-./scripts/test-plugin.sh version-notifier
+# plugins/ を ~/.claude/plugins/ にシンボリックリンク
+./scripts/dev-setup.sh
 
-# Launch with all plugins
-./scripts/test-plugin.sh --all
+# 状態確認
+./scripts/dev-setup.sh --status
+
+# リンク削除
+./scripts/dev-setup.sh --remove
 ```
 
-### Testing Hook Scripts
+これで `claude` を普通に起動するだけでプラグインが動作します。
+
+### Testing
 
 ```bash
-# Test a hook script and see its output
-./scripts/test-hook.sh version-notifier
-```
-
-### Validating Plugins
-
-```bash
-# Validate all plugins
-./scripts/validate-plugin.sh
-
-# Validate a specific plugin
+# プラグインの検証
 ./scripts/validate-plugin.sh version-notifier
+
+# Hook スクリプトの単体テスト
+./scripts/test-hook.sh version-notifier
 ```
 
 ### Creating a New Plugin
