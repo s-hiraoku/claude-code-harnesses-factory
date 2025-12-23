@@ -1,12 +1,14 @@
 {
+  "description": "Version notifier plugin hooks",
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "",
+        "matcher": "startup",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/version-check.sh"
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/version-check.sh\"",
+            "timeout": 30
           }
         ]
       }
