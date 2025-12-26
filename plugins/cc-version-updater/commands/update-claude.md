@@ -27,7 +27,7 @@ Use AskUserQuestion tool to confirm:
 ### 3. Detect Installation Method
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-install-method.sh"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/detect-install-method.js"
 ```
 
 ### 4. Execute Upgrade

@@ -86,7 +86,7 @@ Now supports Kitty, Alacritty, and other terminals.
 └─────────────────────┬───────────────────────────────┘
                       ▼
 ┌─────────────────────────────────────────────────────┐
-│         SessionStart Hook: version-check.sh         │
+│         SessionStart Hook: version-check.js         │
 └─────────────────────┬───────────────────────────────┘
                       ▼
           ┌───────────────────────┐
@@ -151,8 +151,8 @@ plugins/cc-version-updater/
 │   └── canvas-design/
 │       └── SKILL.md             # General visual art generation
 ├── scripts/
-│   ├── version-check.sh         # Version check & notification
-│   └── detect-install-method.sh # Installation method detection
+│   ├── version-check.js         # Version check & notification (Node.js)
+│   └── detect-install-method.js # Installation method detection (Node.js)
 ├── .cache/                      # Runtime cache
 │   ├── pending-upgrade.json     # Pending upgrade info
 │   ├── changelog-summary.json   # AI-generated summary
@@ -209,17 +209,16 @@ After `changelog-interpreter` generates a summary, invoke this skill to create a
 | Homebrew | `brew list --cask claude-code` | `brew upgrade --cask claude-code` |
 | npm | `npm list -g @anthropic-ai/claude-code` | `npm install -g @anthropic-ai/claude-code@latest` |
 
-## Dependencies
+## Requirements
 
-- `jq` - JSON parsing
-- `curl` - HTTP requests
-- `npm` - Version checking
+- **Node.js** - Cross-platform runtime (required for hooks and scripts)
+- `npm` - Version checking (typically included with Node.js)
 
 ## Development & Testing
 
 ```bash
 # Test in debug mode (fake version)
-# Edit get_current_version() in version-check.sh
+# Edit getCurrentVersion() in version-check.js
 
 # Clear cache
 rm -rf plugins/cc-version-updater/.cache/*

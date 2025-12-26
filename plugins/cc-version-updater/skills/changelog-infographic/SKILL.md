@@ -168,25 +168,164 @@ Ground the composition with metadata:
 
 ## IMPLEMENTATION
 
-### File Generation
+**CRITICAL**: Use Python + Pillow (PIL) to programmatically draw the infographic. This is NOT AI image generation - it's code-based drawing.
 
-Generate the PNG using available methods:
+### Prerequisites
 
-**Option A: SVG → PNG (Preferred)**
-1. Construct SVG markup with embedded styles
-2. Convert to PNG using available tools
-3. Save to cache directory
+Ensure Pillow is installed:
 
-**Option B: HTML → PNG**
-1. Generate styled HTML document
-2. Use puppeteer or similar to capture as PNG
-3. Save to cache directory
+```bash
+pip install pillow
+```
 
-**Option C: Canvas API (Node.js)**
-1. Use node-canvas or similar library
-2. Draw elements programmatically
-3. Export as PNG buffer
-4. Save to cache directory
+### Font Requirements
+
+**IMPORTANT**: Use Unicode-compatible fonts to avoid garbled characters (文字化け).
+
+| OS | Recommended Font | Path |
+|----|------------------|------|
+| macOS | Hiragino Sans | `/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc` |
+| macOS (fallback) | Arial Unicode | `/System/Library/Fonts/Supplemental/Arial Unicode.ttf` |
+| Linux | Noto Sans CJK | `/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc` |
+| Windows | Yu Gothic | `C:/Windows/Fonts/yugothic.ttf` |
+
+**Avoid emoji**: Most fonts don't render emoji. Use text symbols instead:
+- Instead of ✨ → use `[NEW]` or `*`
+- Instead of 💡 → use `TIP:` or `>`
+- Instead of 🔧 → use `[FIX]` or `-`
+- Instead of 📦 → use `[1]`, `[2]`, etc.
+
+### Drawing with Pillow
+
+Create a Python script that draws the infographic:
+
+```python
+from PIL import Image, ImageDraw, ImageFont
+import os
+import platform
+
+def get_font(size):
+    """Get a Unicode-compatible font for the current platform."""
+    font_paths = []
+
+    if platform.system() == "Darwin":  # macOS
+        font_paths = [
+            "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
+            "/System/Library/Fonts/Hiragino Sans GB.ttc",
+            "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+            "/System/Library/Fonts/Helvetica.ttc",
+        ]
+    elif platform.system() == "Linux":
+        font_paths = [
+            "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        ]
+    elif platform.system() == "Windows":
+        font_paths = [
+            "C:/Windows/Fonts/yugothic.ttf",
+            "C:/Windows/Fonts/meiryo.ttc",
+            "C:/Windows/Fonts/arial.ttf",
+        ]
+
+    for path in font_paths:
+        try:
+            return ImageFont.truetype(path, size)
+        except:
+            continue
+
+    return ImageFont.load_default()
+
+
+def create_changelog_infographic(data, output_path):
+    """
+    Generate changelog infographic PNG using Pillow.
+
+    Args:
+        data: dict with previousVersion, latestVersion, features, improvements
+        output_path: where to save the PNG
+    """
+    # Canvas setup
+    width = 1200
+    height = 900  # Adjust based on content
+    bg_color = "#FAFAFA"
+
+    img = Image.new("RGB", (width, height), bg_color)
+    draw = ImageDraw.Draw(img)
+
+    # Colors
+    primary = "#1a1a2e"      # Dark text
+    accent = "#4a90d9"       # Claude blue
+    success = "#10b981"      # Green for improvements
+    card_bg = "#ffffff"      # White cards
+
+    # Load Unicode-compatible fonts
+    font_large = get_font(48)
+    font_medium = get_font(24)
+    font_small = get_font(16)
+
+    margin = 60
+    y_cursor = margin
+
+    # === Header ===
+    draw.rectangle([margin, y_cursor, width - margin, y_cursor + 4], fill=accent)
+    y_cursor += 30
+
+    # Version transition (use ASCII arrow for compatibility)
+    version_text = f"v{data['previousVersion']}  -->  v{data['latestVersion']}"
+    draw.text((margin, y_cursor), version_text, font=font_large, fill=primary)
+    y_cursor += 70
+
+    # Title
+    draw.text((margin, y_cursor), "Claude Code Update", font=font_medium, fill=accent)
+    y_cursor += 60
+
+    # === Feature Cards ===
+    for i, feature in enumerate(data.get('features', []), 1):
+        # Card background
+        card_rect = [margin, y_cursor, width - margin, y_cursor + 150]
+        draw.rounded_rectangle(card_rect, radius=12, fill=card_bg)
+
+        # Feature name (use text marker instead of emoji)
+        draw.text((margin + 24, y_cursor + 20),
+                  f"[{i}] {feature['name']}", font=font_medium, fill=primary)
+
+        # Description
+        draw.text((margin + 24, y_cursor + 60),
+                  feature['description'][:80], font=font_small, fill=primary)
+
+        # Usage (use text marker instead of emoji)
+        draw.text((margin + 24, y_cursor + 100),
+                  f"> {feature.get('usage', '')[:60]}", font=font_small, fill="#666666")
+
+        y_cursor += 170
+
+    # === Improvements Section ===
+    draw.text((margin, y_cursor), "[FIX] Improvements & Fixes", font=font_medium, fill=success)
+    y_cursor += 40
+
+    for improvement in data.get('improvements', []):
+        draw.text((margin + 20, y_cursor), f"- {improvement}", font=font_small, fill=primary)
+        y_cursor += 30
+
+    # === Footer ===
+    y_cursor = height - 50
+    draw.text((margin, y_cursor), "Generated by cc-version-updater", font=font_small, fill="#999999")
+
+    # Save
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    img.save(output_path, "PNG")
+    return output_path
+```
+
+### Execution Steps
+
+1. **Parse changelog data** from the interpreter output
+2. **Write Python script** with the drawing code above
+3. **Execute the script**:
+   ```bash
+   python3 generate_infographic.py
+   ```
+4. **Verify output** exists at the expected path
 
 ### Cache Directory
 
