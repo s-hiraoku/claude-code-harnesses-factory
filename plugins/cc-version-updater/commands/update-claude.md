@@ -8,11 +8,21 @@ Execute the Claude Code upgrade process.
 
 ## Steps
 
-### 1. Check Pending Upgrade Info
+### 1. Check Upgrade Info
+
+First, check if pre-generated summary exists (prepared-upgrade.json), otherwise fall back to pending-upgrade.json:
 
 ```bash
-cat "${CLAUDE_PLUGIN_ROOT}/.cache/pending-upgrade.json" 2>/dev/null || echo "{}"
+cat "${CLAUDE_PLUGIN_ROOT}/.cache/prepared-upgrade.json" 2>/dev/null || \
+cat "${CLAUDE_PLUGIN_ROOT}/.cache/pending-upgrade.json" 2>/dev/null || \
+echo "{}"
 ```
+
+**Important**: If `prepared-upgrade.json` exists with `readyForUpgrade: true`:
+- The summary and infographic have been **pre-generated** at session start
+- You can skip Steps 5-7 after upgrade and directly use the prepared content
+
+**Language Detection**: Automatically detect the user's language from their messages in this conversation. Use that language for all output.
 
 ### 2. Confirm with User
 
@@ -21,8 +31,6 @@ Use AskUserQuestion tool to confirm:
 - **Options**: Yes / No
 
 **Note**: The `changelogs` field contains an array of all versions between current and latest.
-
-**Language Detection**: Automatically detect the user's language from their messages in this conversation. Use that language for all output.
 
 ### 3. Detect Installation Method
 
@@ -51,13 +59,23 @@ npm install -g @anthropic-ai/claude-code@latest
 
 Display the upgrade output to the user.
 
-### 5. Generate Changelog Summary
+### 5. Finalize Summary
 
-**CRITICAL**: You MUST follow the `changelog-interpreter` skill EXACTLY.
+**If `prepared-upgrade.json` exists with `readyForUpgrade: true`:**
+
+Simply copy the prepared data to changelog-summary.json:
+
+```bash
+cp "${CLAUDE_PLUGIN_ROOT}/.cache/prepared-upgrade.json" "${CLAUDE_PLUGIN_ROOT}/.cache/changelog-summary.json"
+rm -f "${CLAUDE_PLUGIN_ROOT}/.cache/pending-upgrade.json"
+rm -f "${CLAUDE_PLUGIN_ROOT}/.cache/prepared-upgrade.json"
+```
+
+Skip to Step 8.
+
+**If NO pre-generated content exists**, follow Steps 5.1-5.3 below:
 
 #### Step 5.1: Read the Skill
-
-First, read the skill file to understand the required format:
 
 ```bash
 cat "${CLAUDE_PLUGIN_ROOT}/skills/changelog-interpreter/SKILL.md"
@@ -65,7 +83,7 @@ cat "${CLAUDE_PLUGIN_ROOT}/skills/changelog-interpreter/SKILL.md"
 
 #### Step 5.2: Gather Information (REQUIRED)
 
-As specified in the skill, use **WebSearch** to get accurate information:
+Use **WebSearch** to get accurate information:
 
 **For each version in the changelogs array**, search:
 1. Search: `"Claude Code v{version}" site:anthropic.com`
@@ -75,8 +93,6 @@ Then use **WebFetch** on:
 - `https://github.com/anthropics/claude-code/releases`
 - `https://docs.anthropic.com/en/docs/claude-code`
 
-**Note**: If multiple versions are being upgraded, gather information for each version.
-
 #### Step 5.3: Generate Formatted Summary
 
 Create the summary following the skill's exact format:
@@ -84,22 +100,11 @@ Create the summary following the skill's exact format:
 1. **Use the user's language** (detected from their messages in this conversation)
 2. **Use ANSI color codes** (e.g., `\033[1;36m` for cyan)
 3. **Include decorative header** with `━━━` lines
-4. **Structure**: Update Summary → New Features in Detail (per version) → Improvements & Fixes
-5. **For each feature**: Include "💡 How to use" and "📋 Use cases"
+4. **Structure**: Update Summary -> New Features in Detail (per version) -> Improvements & Fixes
+5. **For each feature**: Include "How to use" and "Use cases"
 6. **Escape for JSON**: Use `\\033` instead of `\033`
 
-**Multi-version format**: When multiple versions are upgraded, create a section for each version:
-```
-## v{version1} Changes
-- Feature 1
-- Feature 2
-
-## v{version2} Changes
-- Feature 1
-- Feature 2
-```
-
-### 6. Save Summary
+### 6. Save Summary (Only if not pre-generated)
 
 Save the generated summary as JSON:
 
@@ -118,50 +123,20 @@ jq -n \
 rm -f "${CLAUDE_PLUGIN_ROOT}/.cache/pending-upgrade.json"
 ```
 
-### 7. Generate Infographic (Optional)
+### 7. Generate Infographic (Only if not pre-generated)
 
-**CRITICAL**: Follow the `changelog-infographic` skill to create a visual summary.
+**Skip this step if using pre-generated content from prepared-upgrade.json.**
 
-#### Step 7.1: Read the Skill
-
-```bash
-cat "${CLAUDE_PLUGIN_ROOT}/skills/changelog-infographic/SKILL.md"
-```
-
-#### Step 7.2: Prepare Input Data
-
-Structure the changelog data for infographic generation:
-
-```json
-{
-  "previousVersion": "{previousVersion}",
-  "latestVersion": "{latestVersion}",
-  "features": [
-    {
-      "name": "Feature Name",
-      "description": "Brief description",
-      "usage": "How to use",
-      "useCases": ["Case 1", "Case 2"]
-    }
-  ],
-  "improvements": ["Improvement 1", "Improvement 2"]
-}
-```
-
-#### Step 7.3: Generate PNG
-
-Follow the skill's design philosophy ("Technical Clarity") to create a PNG infographic:
-
-1. Create the visual using available image generation capabilities
-2. Save to: `${CLAUDE_PLUGIN_ROOT}/.cache/infographics/changelog-{prevVersion}-to-{newVersion}.png`
+If you need to generate manually:
 
 ```bash
-mkdir -p "${CLAUDE_PLUGIN_ROOT}/.cache/infographics"
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/generate-infographic.py" \
+  "${CLAUDE_PLUGIN_ROOT}/.cache/pending-upgrade.json" \
+  "{lang}" \
+  "${CLAUDE_PLUGIN_ROOT}/.cache/infographics/changelog-{prevVersion}-to-{newVersion}.png"
 ```
 
-#### Step 7.4: Store Infographic Path
-
-Save the infographic path to the summary JSON:
+Update the summary JSON with infographic path:
 
 ```bash
 jq --arg path "${CLAUDE_PLUGIN_ROOT}/.cache/infographics/changelog-{prevVersion}-to-{newVersion}.png" \
@@ -171,6 +146,8 @@ jq --arg path "${CLAUDE_PLUGIN_ROOT}/.cache/infographics/changelog-{prevVersion}
 ```
 
 ### 8. Prompt Restart
+
+Display success message:
 
 ```
 Upgrade complete!
@@ -182,11 +159,11 @@ Please restart Claude Code:
 The new features guide will be displayed on next startup.
 ```
 
-If infographic was generated, also display:
+If infographic was generated, also display the path prominently:
 
 ```
-📸 Infographic: {infographicPath}
-   Click to open, or run: open "{infographicPath}"
+Infographic: {infographicPath}
+Run: open "{infographicPath}"
 ```
 
 ### 9. On Cancel
